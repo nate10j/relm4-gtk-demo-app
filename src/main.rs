@@ -4,6 +4,7 @@ use relm4::{gtk, ComponentParts, ComponentSender, RelmApp, RelmWidgetExt, Simple
 
 struct AppModel {
     counter: u8,
+    error: bool,
 }
 
 #[derive(Debug)]
@@ -43,7 +44,7 @@ impl SimpleComponent for AppModel {
         window: Self::Root,
         sender: ComponentSender<Self>,
     ) -> relm4::ComponentParts<Self> {
-        let model = AppModel { counter };
+        let model = AppModel { counter, error: false };
 
         let vbox = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
@@ -86,10 +87,20 @@ impl SimpleComponent for AppModel {
     fn update(&mut self, message: Self::Input, _sender: ComponentSender<Self>) {
         match message {
             AppMsg::Increment => {
-                self.counter = self.counter.wrapping_add(1);
+                if self.counter == u8::MAX {
+                    self.error = true;
+                    return;
+                }
+                self.error = false;
+                self.counter += 1;
             }
             AppMsg::Decrement => {
-                self.counter = self.counter.wrapping_sub(1);
+                if self.counter == u8::MIN {
+                    self.error = true;
+                    return;
+                }
+                self.error = false;
+                self.counter -= 1;
             }
         }
     }
@@ -99,6 +110,10 @@ impl SimpleComponent for AppModel {
         widgets
             .label
             .set_label(&format!("Counter: {}", self.counter));
+
+        if self.error {
+            widgets.label.set_label("error cannot go out of bounds of uint 8");
+        }
     }
 }
 
